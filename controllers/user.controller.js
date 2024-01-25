@@ -6,22 +6,17 @@ const crypto = require('crypto')
 
 exports.signup = async(req,res)=>{
     try{
-        const {username,password} = req.body;
-
+        const {username,password,randomSalt} = req.body;
         const {publicKey, privateKey} = crypto.generateKeyPairSync('rsa',{
             modulusLength:2048,
             publicKeyEncoding : {type:'spki',format:'pem'},
             privateKeyEncoding: {type:'pkcs8',format:'pem'}
         });
 
-        console.log(publicKey)
-        console.log(privateKey)
-       
-
         const newUser = new User({
             username:username,
             password: bcrypt.hashSync(password,10),
-            randomSalt: bcrypt.genSaltSync(10),
+            randomSalt: bcrypt.hashSync(randomSalt,10),
             publicKey:publicKey,
             privateKey:privateKey
         })
@@ -36,7 +31,6 @@ exports.signup = async(req,res)=>{
 exports.login= async(req,res) =>{
     try{
         const {username,password} = req.body;
-     
         const savedUser = await User.findOne({username:username});
      
         if(!savedUser){
@@ -66,7 +60,6 @@ exports.login= async(req,res) =>{
 exports.sign=async(req,res)=>{
     try{
         const {message} = req.body;
-       
         const savedUser = await User.findOne({publicKey:req.user.publicKey});
         console.log(savedUser)
         var crypt = new JSEncrypt();
@@ -74,7 +67,6 @@ exports.sign=async(req,res)=>{
         
         // Encrypt the data with the public key.
         var enc = crypt.encrypt(message);
-        console.log(enc)
         savedUser.signature = enc;
         await savedUser.save();
         return res.status(200).json({"signature":enc});
